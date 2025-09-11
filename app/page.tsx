@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
+import FileUpload from "@/components/ui/FileUpload";
 import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
@@ -16,15 +17,17 @@ export default async function Home() {
             <UserButton afterSwitchSessionUrl="/"/>
           </div>
 
-          <div className="flex mt-2">
-            {isAuth && <Button>Go to Chats</Button>}
-          </div>
+          <p className="max-w-xl mt-1 text-lg text-slate-600">
+            {isAuth ? "Drop your PDF below or choose from your recent chats." : "Get instant answers and insights from your documents using AI."}
+          </p>
 
-          <p className="max-w-xl mt-1 text-lg text-slate-600">Get instant answers and insights from your documents using AI.</p>
+          {isAuth && <div className="flex mt-2">
+            <Button>Go to Chats</Button>
+          </div>}
 
           <div className="w-full mt-4">
             {isAuth ? (
-              <h1>fileUpload</h1>
+              <FileUpload />
             ):(
               <Link href="/sign-in">
                 <Button>
