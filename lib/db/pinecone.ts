@@ -1,19 +1,20 @@
-import { Pinecone } from '@pinecone-database/pinecone';
+import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
 import { downloadFromS3 } from '../s3-server';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document, RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter';
 import { getEmbeddings } from '../embeddings';
 import { Md5 } from 'ts-md5';
 import { Vector } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch/db_data';
+import { sanitizeNamespace } from '../utils';
 
 // create pincone client
-let pc: Pinecone | null = null;
+let pineconeClient: Pinecone | null = null;
 
 export const getPineconeClient = async () => {
-    pc = await new Pinecone({
+    pineconeClient = await new Pinecone({
         apiKey: process.env.PINECONE_API_KEY!
     });
-    return pc
+    return pineconeClient;
 }
 
 // type of PDF page
@@ -42,7 +43,23 @@ export async function loadS3IntoPinecone (fileKey: string) {
     const chunks = chunkedDocs.flat();
     
     // 3. Vectorise and embed each chunk individually
-    const vectors = await Promise.all(chunks.map(embedDocument));
+    const vectors = await Promise.all(chunks.map(embedDocument)) as PineconeRecord[];
+
+    // 4. Upload the vectors to the Pinecone Index
+    const client = await getPineconeClient();
+    const pineconeIndex = client.Index('askthepdf');
+    const sanitizedNamespace = sanitizeNamespace(fileKey);
+
+    // Batch the upsert requests to avoid exceeding Pinecone's payload size limits
+    const batchSize = 100;
+    for(let i=0; i<vectors.length; i+=batchSize){
+        const currentBatch = vectors.slice(i, i+batchSize);
+        await pineconeIndex.namespace(sanitizedNamespace).upsert(currentBatch);
+    }
+
+    return {
+        success: true
+    }
 }
 
 export async function embedDocument (doc: Document) {
