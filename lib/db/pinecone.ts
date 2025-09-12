@@ -2,6 +2,9 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { downloadFromS3 } from '../s3-server';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document, RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter';
+import { getEmbeddings } from '../embeddings';
+import { Md5 } from 'ts-md5';
+import { Vector } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch/db_data';
 
 // create pincone client
 let pc: Pinecone | null = null;
@@ -28,11 +31,37 @@ export async function loadS3IntoPinecone (fileKey: string) {
         throw new Error('Error downloading file.')
     }
     const loader = new PDFLoader(filePath);
-    const rawDocs = (await loader.load()) as PDFDocument[]; // docs mean PDF pages here
+    const rawDocs = (await loader.load()) as PDFDocument[]; // doc refers to individual PDF pages here
 
-    // 2. Pre-process and chunk the documents
-    const docs = await Promise.all(rawDocs.map(prepareDocument));
+    /* 2. Pre-process and chunk the documents
+     * [[p1_chunk1, p1_chunk2], [p2_chunk1], [p3_chunk1, p3_chunk2]] */
+    const chunkedDocs = (await Promise.all(rawDocs.map(prepareDocument)));
+
+    /* Flatten the nested array into a single, flat list of all chunks
+     * [p1_chunk1, p1_chunk2, p2_chunk1, p3_chunk1, p3_chunk2] */
+    const chunks = chunkedDocs.flat();
     
+    // 3. Vectorise and embed each chunk individually
+    const vectors = await Promise.all(chunks.map(embedDocument));
+}
+
+export async function embedDocument (doc: Document) {
+    try {
+        const embeddings = await getEmbeddings(doc.pageContent);
+        const hash: string = Md5.hashStr(doc.pageContent);
+
+        return {
+            id: hash,
+            values: embeddings,
+            metadata: {
+                text: doc.metadata.text,
+                pageNumber: doc.metadata.pageNumber
+            }
+        } as Vector
+    } catch (error) {
+        console.error('Error embedding document: ', error);
+        throw error;
+    }
 }
 
 // Truncates a string to a specified number of bytes
