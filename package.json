@@ -46,5 +46,8 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
   }
 }
