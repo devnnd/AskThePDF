@@ -12,6 +12,7 @@
     "@aws-sdk/client-s3": "^3.884.0",
     "@aws-sdk/lib-storage": "^3.884.0",
     "@clerk/nextjs": "^6.31.9",
+    "@google/genai": "^1.19.0",
     "@langchain/community": "^0.3.55",
     "@langchain/core": "^0.3.75",
     "@neondatabase/serverless": "^1.0.1",

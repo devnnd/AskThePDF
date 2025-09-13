@@ -2,7 +2,7 @@ import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
 import { downloadFromS3 } from '../s3-server';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document, RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter';
-import { getEmbeddings } from '../embeddings';
+import { getEmbeddingsFromGemini } from '../embeddings-gemini';
 import { Md5 } from 'ts-md5';
 import { Vector } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch/db_data';
 import { sanitizeNamespace } from '../utils';
@@ -47,7 +47,7 @@ export async function loadS3IntoPinecone (fileKey: string) {
 
     // 4. Upload the vectors to the Pinecone Index
     const client = await getPineconeClient();
-    const pineconeIndex = client.Index('askthepdf');
+    const pineconeIndex = client.Index('askthepdf-dev', process.env.PINECONE_HOST);
     const sanitizedNamespace = sanitizeNamespace(fileKey);
 
     // Batch the upsert requests to avoid exceeding Pinecone's payload size limits
@@ -64,8 +64,12 @@ export async function loadS3IntoPinecone (fileKey: string) {
 
 export async function embedDocument (doc: Document) {
     try {
-        const embeddings = await getEmbeddings(doc.pageContent);
+        const embeddings = await getEmbeddingsFromGemini(doc.pageContent);
         const hash: string = Md5.hashStr(doc.pageContent);
+
+        if(!embeddings || embeddings.length === 0) {
+            throw new Error("Failed to generate embedding for chunk starting with: " + doc.pageContent.substring(0, 50) + "...");
+        }
 
         return {
             id: hash,

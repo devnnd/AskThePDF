@@ -15,8 +15,7 @@ export async function POST (req: Request, res: Response) {
         const body = await req.json();
         const { fileKey, fileName } = body;
         await loadS3IntoPinecone(fileKey);
-
-        const chat_id = await db
+        const newChats = await db
             .insert(chats)
             .values({
                 fileKey,
@@ -27,13 +26,19 @@ export async function POST (req: Request, res: Response) {
             .returning({
                 insertedId: chats.id
             });
+        
+        if (!newChats || newChats.length === 0) {
+            throw new Error("Failed to create chat in the database.");
+        }
+        const chatId = newChats[0].insertedId;
 
         return NextResponse.json({
-            chatId: chat_id
+            chatId
         }, {
             status: 200
         });
     } catch (error) {
+        console.error(error);
         return NextResponse.json({
             error: "Error creating chat."
         }, {
