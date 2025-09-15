@@ -1,7 +1,7 @@
 "use client";
 import { useDropzone } from 'react-dropzone';
 import { Inbox, Loader2 } from 'lucide-react';
-import { uploadToS3 } from '@/lib/db/s3';
+import { uploadToS3 } from '@/lib/s3';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';

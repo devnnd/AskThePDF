@@ -1,11 +1,11 @@
 import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
-import { downloadFromS3 } from '../s3-server';
+import { downloadFromS3 } from './s3-server';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document, RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter';
-import { getEmbeddingsFromGemini } from '../embeddings-gemini';
+import { getEmbeddingsFromGemini } from './embeddings-gemini';
 import { Md5 } from 'ts-md5';
 import { Vector } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch/db_data';
-import { sanitizeNamespace } from '../utils';
+import { sanitizeNamespace } from './utils';
 
 // create pincone client
 let pineconeClient: Pinecone | null = null;
