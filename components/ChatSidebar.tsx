@@ -1,8 +1,8 @@
 import { DrizzleChat } from "@/lib/db/schema"
 import { MessageCircle, PlusCircle } from "lucide-react"
 import Link from "next/link"
-import { Button } from "./Button"
 import { cn } from "@/lib/utils"
+import { Button } from "./ui/Button"
 
 type props = {
     chats: DrizzleChat[],
@@ -19,7 +19,7 @@ export default function ChatSidebar({ chats, chatId}: props){
                 </Button>
             </Link>
 
-            <div className="flex flex-col gap-2 mt-4">
+            <div className="flex flex-col gap-2 mt-4 overflow-y-auto">
                 {chats.map((chat) => 
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
                         <div 
