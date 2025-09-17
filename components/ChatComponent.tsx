@@ -4,18 +4,32 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/input";
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from "ai";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MessageList from "./MessageList";
 
-type Props = {};
+type Props = {
+    chatId: number
+};
 
-export default function ChatComponent(props: Props){
+export default function ChatComponent({ chatId }: Props){
     const {messages, sendMessage, status} = useChat({
         transport: new DefaultChatTransport({
             api: '/api/chat',
+            body: {
+                chatId
+            }
         }),
     });
     const [input, setInput] = useState('');
+
+    useEffect(()=>{
+        const messageList = document.getElementById('message-list');
+        messageList && messageList.scrollTo({
+            top: messageList.scrollHeight,
+            behavior: 'smooth'
+        })
+    });
+
     return (
         <div className="flex flex-col h-screen">
             {/* Header */}
@@ -25,7 +39,7 @@ export default function ChatComponent(props: Props){
 
             {/* Messages list */}
             <div className="flex-1 overflow-y-auto">
-                <MessageList messages={messages}/>
+                <MessageList messages={messages} id={'message-list'}/>
             </div>
 
             {/* Chat input */}

@@ -2,15 +2,17 @@ import { cn } from '@/lib/utils'
 import { UIMessage} from 'ai'
 
 type Props = {
-    messages: UIMessage[]
+    messages: UIMessage[],
+    id: string
 }
 
-export default function MessageList({messages}: Props){
+export default function MessageList({messages, id}: Props){
     if(!messages){
         return <></>
     }
+    
     return (
-        <div className='flex flex-col gap-2 px-4 overflow-y-auto py-4'>
+        <div className='flex flex-col gap-2 px-4 overflow-y-auto py-4' id={id}>
             {messages.map(message => 
                 <div 
                     key={message.id} 

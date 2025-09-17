@@ -16,6 +16,9 @@ export async function getEmbeddingsFromGemini (text: string) {
                 outputDimensionality: 768
             }
         });
+        if(!response.embeddings){
+            return [];
+        }
         return response.embeddings[0].values;
     } catch (error) {
         console.error('❌ Gemini Embeddings Creation Error: ', error);
