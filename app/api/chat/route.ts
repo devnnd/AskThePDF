@@ -1,8 +1,8 @@
 import { getContext } from '@/lib/context';
 import { db } from '@/lib/db';
-import { chats } from '@/lib/db/schema';
+import { chats, messages } from '@/lib/db/schema';
 import { google } from '@ai-sdk/google';
-import { convertToModelMessages, streamText, UIMessage} from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         messages: UIMessage[],
         chatId: number
     }
-    const {messages, chatId}: ChatRequest = await req.json();
+    const {messages: uiMessages, chatId}: ChatRequest = await req.json();
 
     const _chats = await db.select().from(chats).where(eq(chats.id, chatId));
     if(_chats.length != 1){
@@ -22,14 +22,21 @@ export async function POST(req: Request) {
     }
     const fileKey = _chats[0].fileKey;
 
-    const lastMessage = messages[messages.length - 1];
-    let textContent = ``;
-    textContent = lastMessage.parts
+    const lastMessage = uiMessages[uiMessages.length - 1];
+    let userTextContent = ``;
+    userTextContent = lastMessage.parts
         .filter(part => part.type === 'text')
         .map(part => part.text)
-        .join(' ');
+        .join(' ') as string;
+    
+    // Save the user's message to your database before calling the AI
+    await db.insert(messages).values({
+        chatId,
+        content: userTextContent,
+        role: 'user'
+    });
 
-    const context = await getContext(textContent, fileKey);
+    const context = await getContext(userTextContent, fileKey);
 
     const result = streamText({
         model: google('gemini-2.5-flash'),
@@ -46,7 +53,17 @@ export async function POST(req: Request) {
                 If the context does not provide the answer to question, the AI assistant will say, "I'm sorry, but I don't know the answer to that question".
                 AI assistant will not apologize for previous responses, but instead will indicated new information was gained.
                 AI assistant will not invent anything that is not drawn directly from the context.`,
-        messages: convertToModelMessages(messages),
+        messages: convertToModelMessages(uiMessages),
+        onFinish: async ({text}) => {
+            // This code runs on the server after the AI is done streaming
+            // Saves the AI response to database
+            await db.insert(messages).values({
+                chatId,
+                content: text,
+                role: 'assistant'
+            });
+            console.log("✅ AI response saved to DB");
+        }
     });
 
     return result.toUIMessageStreamResponse();

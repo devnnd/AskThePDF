@@ -3,32 +3,48 @@ import { Send } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/input";
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, UIMessage } from "ai";
 import { useEffect, useState } from "react";
 import MessageList from "./MessageList";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 type Props = {
     chatId: number
 };
 
 export default function ChatComponent({ chatId }: Props){
-    const {messages, sendMessage, status} = useChat({
+    const { data: fetchedMessages, isLoading }= useQuery({
+        queryKey: ["chat", chatId],
+        queryFn: async () => {
+            const response = await axios.post<UIMessage[]>('/api/get-messages', {chatId});
+            return response.data;
+        }
+    })
+
+    const {messages, sendMessage, status, setMessages} = useChat({
         transport: new DefaultChatTransport({
             api: '/api/chat',
             body: {
                 chatId
             }
-        }),
+        })
     });
     const [input, setInput] = useState('');
 
     useEffect(()=>{
-        const messageList = document.getElementById('message-list');
-        messageList && messageList.scrollTo({
-            top: messageList.scrollHeight,
+        if(fetchedMessages){
+            setMessages(fetchedMessages);
+        }
+    }, [fetchedMessages, setMessages]);
+
+    useEffect(()=>{
+        const MessageContainer = document.getElementById('message-container');
+        MessageContainer && MessageContainer.scrollTo({
+            top: MessageContainer.scrollHeight,
             behavior: 'smooth'
         })
-    });
+    }, [messages]);
 
     return (
         <div className="flex flex-col h-screen">
@@ -38,8 +54,8 @@ export default function ChatComponent({ chatId }: Props){
             </div>
 
             {/* Messages list */}
-            <div className="flex-1 overflow-y-auto">
-                <MessageList messages={messages} id={'message-list'}/>
+            <div id='message-container' className="flex-1 overflow-y-auto">
+                <MessageList messages={messages} isLoading={isLoading}/>
             </div>
 
             {/* Chat input */}
